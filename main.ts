@@ -10,4 +10,4 @@ app.post("/test", zValidator("json", test.schema), async (c) => {
   return c.json(test.sum(data));
 });
 
-Deno.serve({ port: 8000 }, app.fetch);
+Deno.serve(/*{ port: 8000 }, */app.fetch);
