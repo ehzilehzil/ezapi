@@ -2,5 +2,5 @@ POST http://localhost:8000/test
 Content-Type: application/json
 
 [
-    
+    {"a": 10, "b": 30}
 ]
