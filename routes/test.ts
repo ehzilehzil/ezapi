@@ -1,5 +1,5 @@
 import { z } from "jsr:@zod/zod@4.1.12";
-import { add } from "../lib/rust_wasm.wasm";
+import { add } from "../lib/add.wasm";
 
 // 스키마 정의
 // [ { a: number, b: number, ... }, ... ]

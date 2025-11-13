@@ -1,6 +1,10 @@
-POST http://localhost:8000/test
+# POST http://localhost:8000/test
+# POST https://ezapi.ehzilehzil.deno.net/test
+
+POST http://localhost:8000/mtsp
 Content-Type: application/json
 
 [
-    {"a": 10, "b": 30}
+    {"name": "우리집", "addr": "신풍로 77", "lng": 127.0, "lat": 37.0, "g": ""},
+    {"name": "좋은곳", "addr": "여의대방로 25", "lng": 127.5, "lat": 37.1, "g": ""}
 ]
