@@ -5,6 +5,7 @@
 // Copilot 도움을 받아 코드 작성
 
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct Item {
@@ -153,8 +154,10 @@ fn tsp_by_groups(items: Vec<Item>) -> Vec<Item> {
 }
 
 
-#[unsafe(no_mangle)]
-pub extern "C" fn get_mtsp(items: &str, k: usize) -> String {
+// #[unsafe(no_mangle)]
+// pub extern "C" fn get_mtsp(items: &str, k: usize) -> String {
+#[wasm_bindgen]
+pub fn get_mtsp(items: &str, k: usize) -> String {
     //-> items 문자열을 Vec<Item> 으로 변환하여 kmeans, tsp 솔빙 실행
     let parsed_items = serde_json::from_str::<Vec<Item>>(items).unwrap();
     let kmeans_result = kmeans(parsed_items, k, 100);

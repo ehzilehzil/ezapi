@@ -1,5 +1,6 @@
 import { z } from "jsr:@zod/zod@4.1.12";
-import { get_mtsp } from "../lib/mtsp.wasm";
+// import { get_mtsp } from "../lib/mtsp.wasm";
+import { get_mtsp } from "../lib/mtsp.js";
 
 // 스키마 정의
 // [ { a: number, b: number, ... }, ... ], k: number
@@ -22,8 +23,9 @@ type Item = {
     g: number,
 };
 
-const compute = (items: Item[], k: number) => {
-    return get_mtsp(items, k);
+const compute = (data: {items: Item[], k: number}) => {
+    let {items, k} = data;
+    return get_mtsp(JSON.stringify(items), k);
 };
 
 export const mtsp = {
