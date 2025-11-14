@@ -1,7 +1,7 @@
 # POST http://localhost:8000/test
 # POST https://ezapi.ehzilehzil.deno.net/test
 
-POST http://localhost:8000/mtsp
+POST http://localhost:8000/test
 Content-Type: application/json
 
 [

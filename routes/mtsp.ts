@@ -1,15 +1,29 @@
 import { z } from "jsr:@zod/zod@4.1.12";
-import { mtsp } from "../lib/mtsp.wasm";
+import { get_mtsp } from "../lib/mtsp.wasm";
 
 // 스키마 정의
-// [ { a: number, b: number, ... }, ... ]
-const schema = z.array(z.object({
-    lat: z.number(),
-    lng: z.number(),
-}).loose()).min(1).max(100);
+// [ { a: number, b: number, ... }, ... ], k: number
+const schema = z.object({
+    items: z.array(z.object({
+        name: z.string(),
+        addr: z.string(),
+        lat: z.number(),
+        lng: z.number(),
+        g: z.number(),
+    })).min(1).max(100),
+    k: z.number().min(1).max(100),
+});
 
-const compute = (data: { lat: number, lng: number, [_: string]: unknown }[]) => {
-    return data;
+type Item = {
+    name: string,
+    addr: string,
+    lat: number,
+    lng: number,
+    g: number,
+};
+
+const compute = (items: Item[], k: number) => {
+    return get_mtsp(items, k);
 };
 
 export const mtsp = {

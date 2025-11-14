@@ -1,6 +1,7 @@
 {
   "recommendations": [
     "denoland.vscode-deno",
-    "rust-lang.rust-analyzer"
+    "rust-lang.rust-analyzer",
+    "humao.rest-client"
   ]
 }

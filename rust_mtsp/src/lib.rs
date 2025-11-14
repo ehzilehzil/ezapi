@@ -79,7 +79,7 @@ fn kmeans(mut items: Vec<Item>, mut k: usize, max_iters: usize) -> Vec<Item> {
 
         //--> 변화가 "거의" 없을 경우 break
         if centeroids.iter().zip(new_centeroids.iter())
-            .all(|(a, b)| (a.0 - b.0).abs() < 1e-6 && (a.1 - b.1).abs() < 1e-6)
+            .all(|(a, b)| (a.0 - b.0).abs() < 1e-4 && (a.1 - b.1).abs() < 1e-4)
             {
                 break;
             }
@@ -154,10 +154,11 @@ fn tsp_by_groups(items: Vec<Item>) -> Vec<Item> {
 
 
 #[unsafe(no_mangle)]
-pub extern "C" fn mtsp(items: &str, k: usize) -> String {
+pub extern "C" fn get_mtsp(items: &str, k: usize) -> String {
     //-> items 문자열을 Vec<Item> 으로 변환하여 kmeans, tsp 솔빙 실행
     let parsed_items = serde_json::from_str::<Vec<Item>>(items).unwrap();
-    let result = tsp_by_groups(parsed_items);
+    let kmeans_result = kmeans(parsed_items, k, 100);
+    let result = tsp_by_groups(kmeans_result);
     return serde_json::to_string(&result).unwrap();
 }
 
