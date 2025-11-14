@@ -1,13 +1,4 @@
-[package]
-name = "mtsp"
-version = "0.1.0"
-edition = "2024"
-
-[lib]
-crate-type = ["cdylib"]
-path = "rust_src/lib.rs"
-
-[dependencies]
-linfa = "0.8"
-linfa-clustering = "0.8"
-ndarray = "0.17"
+[workspace]
+members = [
+    "rust_mtsp"
+]
