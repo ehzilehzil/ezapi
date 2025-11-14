@@ -13,7 +13,7 @@ app.post("/test", zValidator("json", test.schema), async (c) => {
 
 app.post("/mtsp", zValidator("json", mtsp.schema), async (c) => {
   const data = c.req.valid("json");
-  return c.json(mtsp.compute(data));
+  return c.json(JSON.parse(mtsp.compute(data)));
 });
 
 Deno.serve(/*{ port: 8000 }, */app.fetch);
