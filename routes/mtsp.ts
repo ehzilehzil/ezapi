@@ -12,7 +12,7 @@ const schema = z.object({
         lng: z.number(),
         g: z.number(),
     })).min(1).max(100),
-    k: z.number().min(1).max(100),
+    k: z.number().min(1).max(10),
 });
 
 type Item = {
