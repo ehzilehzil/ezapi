@@ -1,7 +1,3 @@
-// rustup target add wasm32-unknown-unknown
-// cargo build --package mtsp --target wasm32-unknown-unknown --release
-// 결과물이 ./target/wasm32-unknown-unknown/release/[이름].wasm
-// 이를 ./lib로 복사
 // Copilot 도움을 받아 코드 작성
 
 use serde::{Deserialize, Serialize};
@@ -153,6 +149,82 @@ fn tsp_by_groups(items: Vec<Item>) -> Vec<Item> {
     return result;
 }
 
+fn redistribute_clusters(mut items: Vec<Item>, max_size: usize) -> (Vec<Item>, String) {
+    use std::collections::HashMap;
+
+    //-> max_size 초과 그룹 여부 확인
+    let mut groups = HashMap::<usize, usize>::new();
+    for item in items.iter() {
+        *groups.entry(item.g).or_insert(0) += 1;
+    }
+    if groups.values().all(|x| x <= &max_size) {
+        return (items, "OK".to_owned());
+    }
+
+    //-> 그룹별 모음
+    let mut groups = HashMap::<usize, Vec<Item>>::new();
+    for item in items {
+        groups.entry(item.g).or_default().push(item);
+    }
+
+    //-> 중심점 계산 함수
+    fn centeroid(items: &Vec<Item>) -> (f64, f64) {
+        let (sum_lng, sum_lat) = items.iter().map(|x| (x.lng, x.lat)).fold((0.0, 0.0), |a, x| (a.0 + x.0, a.1 + x.1));
+        let n = items.len() as f64;
+        return (sum_lng / n, sum_lat / n);
+    }
+
+    //-> 중심점 맵
+    let mut centeroids = HashMap::<usize, (f64, f64)>::new();
+    for (g, items) in &groups {
+        centeroids.insert(*g, centeroid(items));
+    }
+
+
+    let mut moved = false;
+    //-> 초과 그룹 처리
+    for (g, v) in groups.clone() {
+        if v.len() > max_size {
+            let center = centeroids[&g];
+            // 먼 아이템부터 정렬
+            let mut sorted = v.clone();
+            sorted.sort_by(|a, b| {
+                let da = ((a.lng - center.0).powi(2) + (a.lat - center.1).powi(2)).sqrt();
+                let db = ((b.lng - center.0).powi(2) + (b.lat - center.1).powi(2)).sqrt();
+                db.partial_cmp(&da).unwrap() // 먼 것부터
+            });
+
+            for item in sorted.into_iter().skip(max_size) {
+                // 가장 가까운 중심점 찾기
+                let mut candidates: Vec<(usize, f64)> = centeroids.iter()
+                    .filter(|(cg, _)| **cg != g)
+                    .map(|(cg, c)| (*cg, ((item.lng - c.0).powi(2) + (item.lat - c.1).powi(2)).sqrt()))
+                    .collect();
+                candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+
+                let mut moved_item = false;
+                for (target_g, _) in candidates {
+                    if groups[&target_g].len() < max_size {
+                        let mut new_item = item.clone();
+                        new_item.g = target_g;
+                        groups.get_mut(&target_g).unwrap().push(new_item);
+                        moved_item = true;
+                        moved = true;
+                        break;
+                    }
+                }
+
+                if !moved_item {
+                    return (groups.into_values().flatten().collect(), "⚠️ 모든 그룹이 꽉 차서 일부 초과 유지".to_string());
+                }
+            }
+        }
+    }
+
+    let status = if moved { "✅ 재배치 완료" } else { "⚠️ 재배치 불가능" };
+    return (groups.into_values().flatten().collect(), status.to_string());
+}
+
 
 // #[unsafe(no_mangle)]
 // pub extern "C" fn get_mtsp(items: &str, k: usize) -> String {
@@ -162,6 +234,7 @@ pub fn get_mtsp(items: &str, k: usize) -> String {
     let parsed_items = serde_json::from_str::<Vec<Item>>(items).unwrap();
     let kmeans_result = kmeans(parsed_items, k, 100);
     let result = tsp_by_groups(kmeans_result);
+    let result = redistribute_clusters(result, 30);
     return serde_json::to_string(&result).unwrap();
 }
 
