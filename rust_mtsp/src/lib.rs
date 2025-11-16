@@ -149,95 +149,173 @@ fn tsp_by_groups(items: Vec<Item>) -> Vec<Item> {
     return result;
 }
 
-fn redistribute_clusters(mut items: Vec<Item>, max_size: usize) -> (Vec<Item>, String) {
-    use std::collections::HashMap;
 
-    // 그룹별 개수 확인
-    let mut groups_count = HashMap::<usize, usize>::new();
-    for item in &items {
-        *groups_count.entry(item.g).or_insert(0) += 1;
-    }
-    if groups_count.values().all(|&x| x <= max_size) {
-        return (items, "OK".to_string());
-    }
 
-    // 그룹별 아이템 모음
-    let mut groups = HashMap::<usize, Vec<Item>>::new();
-    for item in items {
-        groups.entry(item.g).or_default().push(item);
-    }
+// fn redistribute_clusters(items: Vec<Item>, max_size: usize) -> (Vec<Item>, String) {
+//     use std::cmp::Ordering;
+//     use std::collections::HashMap;
+    
+//     // 그룹별로 묶기
+//     let mut groups: HashMap<usize, Vec<Item>> = HashMap::new();
+//     for item in items {
+//         groups.entry(item.g).or_default().push(item);
+//     }
 
-    // 중심점 계산 함수
-    fn centroid(items: &Vec<Item>) -> (f64, f64) {
-        let (sum_lng, sum_lat) = items.iter()
-            .map(|x| (x.lng, x.lat))
-            .fold((0.0, 0.0), |a, x| (a.0 + x.0, a.1 + x.1));
-        let n = items.len() as f64;
-        (sum_lng / n, sum_lat / n)
-    }
+//     // 중심점 계산
+//     fn centroid(items: &[Item]) -> (f64, f64) {
+//         let n = items.len() as f64;
+//         if n == 0.0 {
+//             return (0.0, 0.0);
+//         }
+//         let (sum_lng, sum_lat) = items.iter().fold((0.0, 0.0), |acc, it| (acc.0 + it.lng, acc.1 + it.lat));
+//         (sum_lng / n, sum_lat / n)
+//     }
 
-    // 그룹별 중심점
-    let mut centroids = HashMap::<usize, (f64, f64)>::new();
-    for (g, v) in &groups {
-        centroids.insert(*g, centroid(v));
-    }
+//     // NaN 안전 비교
+//     fn safe_cmp(a: f64, b: f64) -> Ordering {
+//         match a.partial_cmp(&b) {
+//             Some(ord) => ord,
+//             None => Ordering::Equal, // NaN 등은 동일 취급
+//         }
+//     }
 
-    let mut moved = false;
+//     // 거리 계산
+//     fn distance(item: &Item, center: (f64, f64)) -> f64 {
+//         let dx = item.lng - center.0;
+//         let dy = item.lat - center.1;
+//         (dx * dx + dy * dy).sqrt()
+//     }
 
-    // 초과 그룹 처리
-    for (g, v) in groups.clone() {
-        if v.len() > max_size {
-            let center = centroids[&g];
-            let mut sorted = v.clone();
-            // 중심점에서 먼 순으로 정렬
-            sorted.sort_by(|a, b| {
-                let da = ((a.lng - center.0).powi(2) + (a.lat - center.1).powi(2)).sqrt();
-                let db = ((b.lng - center.0).powi(2) + (b.lat - center.1).powi(2)).sqrt();
-                db.partial_cmp(&da).unwrap()
-            });
+//     // 초기 중심점
+//     let mut centroids: HashMap<usize, (f64, f64)> = HashMap::new();
+//     for (g, v) in &groups {
+//         centroids.insert(*g, centroid(v));
+//     }
 
-            // 초과 아이템 이동
-            for item in sorted.into_iter().skip(max_size) {
-                let mut candidates: Vec<(usize, f64)> = centroids.iter()
-                    .filter(|(cg, _)| **cg != g)
-                    .map(|(cg, c)| (*cg, ((item.lng - c.0).powi(2) + (item.lat - c.1).powi(2)).sqrt()))
-                    .collect();
-                candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+//     let mut moved_any = false;
 
-                let mut moved_item = false;
-                for (target_g, _) in candidates {
-                    let target_group = groups.get_mut(&target_g).unwrap();
-                    if target_group.len() < max_size {
-                        let mut new_item = item.clone();
-                        new_item.g = target_g;
-                        target_group.push(new_item);
-                        moved_item = true;
-                        moved = true;
-                        break;
-                    }
-                }
+//     // 초과가 없어질 때까지 반복 시도
+//     loop {
+//         // 초과 그룹 목록
+//         let mut overfull: Vec<(usize, usize)> = groups
+//             .iter()
+//             .filter_map(|(g, v)| {
+//                 let len = v.len();
+//                 if len > max_size { Some((*g, len)) } else { None }
+//             })
+//             .collect();
 
-                if !moved_item {
-                    return (
-                        groups.into_values().flatten().collect(),
-                        "⚠️ 모든 그룹이 꽉 차서 일부 초과 유지".to_string(),
-                    );
-                }
-            }
-        }
-    }
+//         if overfull.is_empty() {
+//             break; // 모든 그룹이 max_size 이하 → 종료
+//         }
 
-    // 최종 검증
-    if groups.values().any(|v| v.len() > max_size) {
-        return (
-            groups.into_values().flatten().collect(),
-            "⚠️ 여전히 초과된 그룹 존재".to_string(),
-        );
-    }
+//         // 초과 그룹을 처리
+//         let mut progress = false;
 
-    let status = if moved { "✅ 재배치 완료" } else { "⚠️ 재배치 불가능" };
-    (groups.into_values().flatten().collect(), status.to_string())
-}
+//         for (g, len) in overfull {
+//             // 중심점 기준으로 먼 아이템부터 정렬
+//             let center = centroids.get(&g).copied().unwrap_or((0.0, 0.0));
+//             let mut sorted = groups.get(&g).cloned().unwrap_or_default();
+//             sorted.sort_by(|a, b| {
+//                 let da = distance(a, center);
+//                 let db = distance(b, center);
+//                 // 먼 것부터 → 내림차순
+//                 safe_cmp(db, da)
+//             });
+
+//             // 초과분 아이템을 하나씩 이동
+//             let overflow_count = len.saturating_sub(max_size);
+//             let overflow_items = sorted.into_iter().take(overflow_count);
+
+//             for item in overflow_items {
+//                 // 후보: 다른 그룹 중 아직 여유가 있는 그룹
+//                 let mut candidates: Vec<(usize, f64)> = centroids
+//                     .iter()
+//                     .filter_map(|(cg, c)| {
+//                         if *cg == g {
+//                             return None;
+//                         }
+//                         let target_len = groups.get(cg).map(|v| v.len()).unwrap_or(0);
+//                         if target_len < max_size {
+//                             Some((*cg, distance(&item, *c)))
+//                         } else {
+//                             None
+//                         }
+//                     })
+//                     .collect();
+
+//                 // 가장 가까운 그룹 선택
+//                 candidates.sort_by(|a, b| safe_cmp(a.1, b.1));
+
+//                 if let Some((target_g, _)) = candidates.first().copied() {
+//                     let mut moved_item = item.clone();
+//                     moved_item.g = target_g;
+//                     groups.entry(target_g).or_default().push(moved_item);
+
+//                     // 원본 그룹에서 해당 아이템 하나 제거
+//                     if let Some(src) = groups.get_mut(&g) {
+//                         // 동일 좌표·ID 기준으로 제거(여기선 값 비교)
+//                         if let Some(pos) = src.iter().position(|it| it.lng == item.lng && it.lat == item.lat) {
+//                             src.remove(pos);
+//                         } else {
+//                             // 포지션 못 찾으면 가장 먼 것 제거(보호 로직)
+//                             src.sort_by(|a, b| {
+//                                 let da = distance(a, center);
+//                                 let db = distance(b, center);
+//                                 safe_cmp(db, da)
+//                             });
+//                             src.remove(0);
+//                         }
+//                     }
+
+//                     progress = true;
+//                     moved_any = true;
+//                 } else {
+//                     // 옮길 수 있는 그룹이 하나도 없다 → 모든 그룹이 꽉 찼음
+//                     let result: Vec<Item> = groups
+//                         .into_iter()
+//                         .flat_map(|(_, v)| v)
+//                         .collect();
+//                     return (result, "⚠️ 모든 그룹이 꽉 차서 일부 초과 유지".to_string());
+//                 }
+//             }
+
+//             // 그룹 중심점 갱신(이동 후에 반영)
+//             if let Some(v) = groups.get(&g) {
+//                 centroids.insert(g, centroid(v));
+//             }
+//             for (tg, _) in &centroids {
+//                 if let Some(v) = groups.get(tg) {
+//                     centroids.insert(*tg, centroid(v));
+//                 }
+//             }
+//         }
+
+//         // 이번 라운드에서 이동이 없었으면 더 이상 진행 불가
+//         if !progress {
+//             break;
+//         }
+//     }
+
+//     // 최종 결과 정리 및 상태
+//     let result: Vec<Item> = groups.into_iter().flat_map(|(_, v)| v).collect();
+//     let all_ok = {
+//         // 최대치 검증
+//         let mut counts: HashMap<usize, usize> = HashMap::new();
+//         for it in &result {
+//             *counts.entry(it.g).or_insert(0) += 1;
+//         }
+//         counts.values().all(|&n| n <= max_size)
+//     };
+
+//     let status = if all_ok {
+//         if moved_any { "✅ 재배치 완료" } else { "OK" }
+//     } else {
+//         "⚠️ 여전히 초과된 그룹 존재"
+//     };
+
+//     (result, status.to_string())
+// }
 
 
 // #[unsafe(no_mangle)]
@@ -248,7 +326,7 @@ pub fn get_mtsp(items: &str, k: usize) -> String {
     let parsed_items = serde_json::from_str::<Vec<Item>>(items).unwrap();
     let kmeans_result = kmeans(parsed_items, k, 100);
     let result = tsp_by_groups(kmeans_result);
-    let result = redistribute_clusters(result, 30).0;
+    // let result = redistribute_clusters(result, 30).0;
     return serde_json::to_string(&result).unwrap();
 }
 
