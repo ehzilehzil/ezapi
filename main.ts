@@ -6,6 +6,15 @@ import { mtsp } from "./routes/mtsp.ts";
 
 const app = new Hono();
 
+app.use("*", cors({
+  origin: [
+    "http://localhost:4321",
+    "https://ehzilehzil.github.io"
+  ],
+  allowMethods: ["GET", "POST", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+}));
+
 app.onError((err, c) => {
   console.log(err.name);
 
