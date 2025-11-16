@@ -234,7 +234,7 @@ pub fn get_mtsp(items: &str, k: usize) -> String {
     let parsed_items = serde_json::from_str::<Vec<Item>>(items).unwrap();
     let kmeans_result = kmeans(parsed_items, k, 100);
     let result = tsp_by_groups(kmeans_result);
-    let result = redistribute_clusters(result, 30);
+    let result = redistribute_clusters(result, 30).0;
     return serde_json::to_string(&result).unwrap();
 }
 

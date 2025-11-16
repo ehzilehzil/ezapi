@@ -2,13 +2,7 @@
 # POST https://ezapi.ehzilehzil.deno.net/test
 # POST http://localhost:8000/mtsp
 
-<<<<<<< HEAD
-POST http://localhost:8000/mtsp
-# POST https://ezapi.ehzilehzil.deno.net/mtsp
-=======
-
 POST https://ezapi.ehzilehzil.deno.net/mtsp
->>>>>>> test
 Content-Type: application/json
 
 {
@@ -24,7 +18,7 @@ Content-Type: application/json
     { "name": "도서관", "addr": "서울 서초구 반포대로 55", "lat": 37.503, "lng": 127.004, "g": 2 },
     { "name": "식당", "addr": "서울 용산구 한강대로 120", "lat": 37.529, "lng": 126.967, "g": 1 }
   ],
-  "k": 35
+  "k": 5
 }
 
 # POST http://localhost:8000/test
