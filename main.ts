@@ -1,4 +1,5 @@
 import { Hono } from "jsr:@hono/hono@4.10.5";
+import { cors } from "jsr:@hono/hono@4.10.5/cors";
 import { ZodError } from "jsr:@zod/zod@4.1.12";
 import { test } from "./routes/test.ts";
 import { mtsp } from "./routes/mtsp.ts";
